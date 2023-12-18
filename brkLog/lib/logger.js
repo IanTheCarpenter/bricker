@@ -1,8 +1,12 @@
+const { LogConfig } = require("./config/log-config");
+const { LogLevel } = require("./utils/log-level.");
+
 class Logger {
     /**
      * @type {LogConfig}
      */
     #config;
+
 
     /**
      * @returns {Logger} New instance of Logger with defaults
@@ -10,6 +14,7 @@ class Logger {
     static with_defaults() {
         return new Logger();
     }
+
 
     /**
      * @param {LogConfig} log_config
@@ -21,13 +26,11 @@ class Logger {
 
 
     // instances of this object will be called to generate log messages
-    #level = LogLevel.Info;
-    constructor(loglevel) {
-        if (arguments.length > 0) {
-            LogLevel.assert(loglevel)
-            this.#level = loglevel
-        }
+    constructor(log_config) {
+        log_config = log_config || LogConfig.with_defaults()
+        LogConfig.assert(log_config);
+        this.#config = log_config
     }
 
-    get level() { return this.#level }
+    get level() { return this.#config.level }
 }
