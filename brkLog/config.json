@@ -1,0 +1,8 @@
+{
+    "level": 3,
+    "file_prefix": "Log_Test",
+    "rolling_config": {
+        "size_threshold": 1048576,
+        "time_threshold": 60
+    }
+}

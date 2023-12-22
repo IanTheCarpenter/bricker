@@ -1,0 +1,15 @@
+{
+  "name": "brklog",
+  "version": "0.0.1",
+  "description": "Bare-bones Logging module for bare-bones framework",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "start": "node test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
