@@ -1,0 +1,13 @@
+
+
+{
+    "handlers": {
+        "home/residents/:id" 
+        "home/residents/:id/guests/:date" 
+        "home/residents/:id/statements/:date" 
+
+        "work/:employer/" 
+        "work/:employer/employee/:employee_id" 
+        "work/:employer/campus/:campus_id" 
+    }
+}
