@@ -1,12 +1,12 @@
-const { type } = require('node:os');
 const path = require('node:path')
 
 
 
 class RouterNode {
     constructor(name='null') {
-        this.name = name
-        this.handlers = new Map()
+        this.dirs = null;
+        this.name = name;
+        this.handlers = new Map();
         this.children = {};
     }
     addHandler(http_method, handler) {
@@ -18,8 +18,6 @@ class RouterNode {
                 `Method ${http_method} not supported`
             );
         }
-
-
         return this.handlers.get(http_method)
     }
 }
@@ -29,17 +27,32 @@ class Router {
         this.root = new RouterNode();
     }
 
-    #dirList(route) {
+    #generateDirsList(route) {
+        
         //verify the path starts with /
         if (route[0] !== "/") {
             throw new Error(`Invalid path: ${route}`)
         }
         
-        return path.normalize(route.replace(/\s+/g, ''))
-            .split('\\')
-            .map(i => {if (i[0] !== ":") {i.toUpperCase()}})
-            .filter(i => {return i != ''})
+        let list = path.normalize(route.replace(/\s+/g, ''))
+        list = list.split('\\')
+        list.map(i => {if (i[0] !== ":") {i.toLowerCase()}})
+        list = list.filter(i => {return i != ''})
+        return list
     }
+
+    #generateParams(dirs, url) {
+
+        let params = {};
+
+        for (let i=0; i<dirs.length; i++ ) {
+            if (dirs[i][0] === ":") {
+                params[`${dirs[i].substring(1)}`] = url[i]
+            }
+        }
+        return params
+    }
+
 
     static verifyHTTPMethod(http_method) {
         if (typeof http_method != "string") {
@@ -61,20 +74,28 @@ class Router {
                 `Invalid parameter 'handler': ${handler} is not of type 'function'`
                 );
             }
+
         http_method = http_method.toUpperCase()
         Router.verifyHTTPMethod(http_method)
 
         let current = this.root
-        let dirs = this.#dirList(route)
+        let dirs = this.#generateDirsList(route)
         for (const i of dirs) {
+            if (i[0] == ":" && Object.keys(current.children).length < 0) {
+                throw new Error(
+                    `Invalid route: cannot add dynamic route in non-empty directory`
+                )
+            }
+
             if (!current.children[i]) {current.children[i] = new RouterNode(i)}
             current = current.children[i]
         }
+        current.dirs = dirs
         current.addHandler(http_method, handler)
     }
 
-    getRoute(route, http_method) {
-        if (typeof route != "string") {
+    getRoute(url, http_method) {
+        if (typeof url != "string") {
             throw new Error(
                 "Invalid parameter: 'route' must be of type 'string'"
                 );
@@ -83,16 +104,35 @@ class Router {
         Router.verifyHTTPMethod(http_method)
 
         let current = this.root
-        let dirs = this.#dirList(route)
-        console.log(dirs)
-        for (const i of dirs) {
-            if (current.children.hasOwnProperty(i)) {current = current.children[i]}
+        let url_dirs = this.#generateDirsList(url)
+        console.log(`getRoute called: ${url}, ${http_method}`)
+        console.log(`  url_dirs: ${url_dirs}`)
+        console.log(`  beginning loop:`)
+        console.log()
+        for (const i of url_dirs) {
+            let children_keys = Object.keys(current.children)
+            console.log(`    children of current node ${current.name}: ${children_keys}`)
+            
+            //dynamic route:
+            if (children_keys[0][0] == ":") {
+                current = current.children[children_keys[0]];
+                console.log(`    dynamic route found: ${current.name}`)
+            }
+            //static route
+            else if (current.children.hasOwnProperty(i)) {
+                current = current.children[i];
+                console.log(`    static route found: ${current.name}`)
+            }
             else {return null}
+            console.log()
         }
 
+        console.log(`getRoute:`)
+        console.log(`  current node name: ${current.name}`)
+        console.log(`  current node path: ${current.dirs}`)
+        console.log(`  current URL: ${url_dirs}`)
 
-
-        return current.getHandler(http_method)
+        return {func: current.getHandler(http_method), params: this.#generateParams(current.dirs, url_dirs)}
     }
 
     dumpRoutes(node=this.root, indent=0) {
@@ -103,16 +143,3 @@ class Router {
     }
 }
 
-let fn = function() {console.log("placeholder function")}
-
-let router = new Router()
-router.addRoute("/home/residents/john", "POST", fn,)
-router.addRoute("/home/residents/john", "connect", fn,)
-router.addRoute("/home/residents/jane", "GET", fn,)
-router.addRoute("/home/guests/bob", "GET", fn,)
-router.addRoute("/home/guests/alice", "GET", fn,)
-
-router.dumpRoutes()
-
-router.getRoute("/home/residents/john", "post")()
-router.getRoute("/home/residents/john", "connect")()
